@@ -1,0 +1,23 @@
+func handleLibCommands(tokens []string) { switch tokens[1] {
+	case "list":
+		for i := 0; i < lib.Len(); i++ {
+			fmt.Println(i+1, ":", e.Name, e.Artist, e.Source, e.Type)
+		}
+		case "add": {
+		if len(tokens) == 6 { id++
+        	lib.Add(&library.MusicEntry{strconv.Itoa(id),
+            tokens[2], tokens[3], tokens[4], tokens[5]})
+		} else {
+			fmt.Println("USAGE: lib add <name><artist><source><type>")
+		} }
+		case "remove":
+		if len(tokens) == 3 {
+			lib.RemoveByName(tokens[2]) } else {
+        	fmt.Println("USAGE: lib remove <name>")
+    	}
+		default:
+		fmt.Println("Unrecognized lib command:", tokens[1])
+		}
+
+￼￼e, _ := lib.Get(i)
+￼￼￼}
