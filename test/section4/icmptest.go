@@ -4,14 +4,18 @@ import (
 	"net"
 	"os"
 	"fmt"
+	"bytes"
+	"io"
 )
 
 func main() {
+	fmt.Println(os.Args, len(os.Args));
 	if len(os.Args) != 2 {
 		fmt.Println("Usage: ", os.Args[0], "host");
 		os.Exit(1)
 	}
 	service := os.Args[1]
+	fmt.Println("get shost: ", service)
 
 	conn, err := net.Dial("ip4:icmp", service)
 	checkError(err)
@@ -21,31 +25,37 @@ func main() {
 	msg[1]    = 0
 	msg[2]    = 0
 	msg[3]    = 0
-	msg[4]    = 13
-	msg[5]    = 0
-	msg[6]    = 37
-	msg[7]    = 8
+	msg[4]    = 0
+	msg[5]    = 13
+	msg[6]    = 0
+	msg[7]    = 37
 
 	len := 8
 
 	check := checkSum(msg[0:len])
-	fmt.Println("Usage: %d", check);
+	fmt.Println("checksum: ", check);
 	msg[2] = byte(check >> 8)
-	msg[3] = byte(check >> 255)
+	msg[3] = byte(check & 255)
 
 	_, err = conn.Write(msg[0:len])
 	checkError(err)
+	fmt.Println("write response")
 
-	_, err = conn.Read(msg[0:])
+	_, err = readFully(conn)
 	checkError(err)
+	fmt.Println("read response")
 
 	fmt.Println("Got response")
 	if msg[5] == 13 {
 		fmt.Println("Identity matches")
+	} else {
+		fmt.Println("Identity does not matches")
 	}
 
 	if msg[7] == 37 {
 		fmt.Println("Identity matches")
+	} else {
+		fmt.Println("Identity does not matches")
 	}
 
 	os.Exit(0)
@@ -54,10 +64,11 @@ func main() {
 func checkSum(msg []byte) uint16 {
 	sum := 0
 
-	for n := 1; n < len(msg)-1; n+=2 {
+	for n := 1; n < len(msg)-1; n +=2 {
 		sum += int(msg[n])*256 + int(msg[n+1])
 	}
 	sum = (sum >> 16) + sum&0xffff
+	sum += (sum >> 16)
 	var answer uint16 = uint16(^sum)
 	return answer
 }
@@ -69,3 +80,21 @@ func checkError(err error) {
 	}
 }
 
+func readFully(conn net.Conn) ([]byte, error) {
+	defer conn.Close()
+
+	result := bytes.NewBuffer(nil)
+	var buf [512]byte
+	for {
+		n, err := conn.Read(buf[0:])
+		fmt.Println("读到内容:", buf)
+		result.Write(buf[0:n])
+		if err != nil {
+			if err == io.EOF {
+				break;
+			}
+			return nil, err
+		}
+	}
+	return result.Bytes(), nil
+}
