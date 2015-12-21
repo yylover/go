@@ -1,0 +1,6 @@
+#! /bin/bash
+
+fatal() {
+    echo $?
+    exit 1
+}
