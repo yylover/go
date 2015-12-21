@@ -1,0 +1,6 @@
+[2015/12/21 21:04:06 CST] [INFO] (network.NewServer:81) set fd limit to 10000
+[2015/12/21 21:04:06 CST] [INFO] (network.(*Server).Start:100) Tcp server start to listen on :5986
+[2015/12/21 21:05:08 CST] [INFO] (network.NewServer:81) set fd limit to 10000
+[2015/12/21 21:05:08 CST] [INFO] (network.(*Server).Start:100) Tcp server start to listen on :5986
+[2015/12/21 21:06:26 CST] [INFO] (network.NewServer:81) set fd limit to 10000
+[2015/12/21 21:06:26 CST] [INFO] (network.(*Server).Start:100) Tcp server start to listen on :5986

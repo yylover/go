@@ -1,11 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net"
 	"os"
-	"bytes"
-	"io"
 )
 
 func main() {

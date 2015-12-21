@@ -1,13 +1,18 @@
 package main
 
 import (
-	"fmt"
 	"flag"
+	"fmt"
+	"network"
 	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
 	"time"
-	"net"
 	//"runtime"
-	"encoding/json"
+
+	"common"
+	"lib/go-config/config"
 )
 
 const (
@@ -17,12 +22,53 @@ const (
 func initialize() error {
 	fmt.Println("tf initializing ....")
 
+	//读取配置文件，缺省是./etc/tf.conf
+	//flag是commandLine解析package
 	confFile := flag.String("c", "./etc/tf.conf", "config file name")
 	if confFile == nil {
 		return fmt.Errorf("no config file")
 	}
+	//初始化相关参数
+	flag.Parse()
 
-	fmt.Println("has config file")
+	conf, err := config.ReadDefault(*confFile)
+	common.CheckError(err, "load config file failed: ")
+	common.Conf = conf
+
+	max_processor := common.GetConfInt("global", "max_processor", runtime.NumCPU())
+	fmt.Println("max_processor: ", max_processor)
+	runtime.GOMAXPROCS(max_processor)
+	fmt.Println("exe max_processor")
+
+	//work dir 有什么用
+	dir, err := common.Conf.String("global", "root_dir")
+	if err == nil {
+		err = os.Chdir(dir)
+		if err != nil {
+			return fmt.Errorf("change working directory to %s failed:%s, dir, err.Error()")
+		}
+	}
+	common.Dir, _ = os.Getwd()
+	fmt.Println("work directory:" + common.Dir)
+
+	//
+	num := common.GetConfInt("global", "work_num", 1)
+	if num < 1 {
+		return fmt.Errorf("work number must bigger than 1")
+	}
+
+	//生成channel
+	common.WorkerNum = num
+	common.PacketChans = make([]chan []byte, num)
+	for i := 0; i < num; i++ {
+		common.PacketChans[i] = make(chan []byte, common.GetConfInt("server", "packet_chan_size", 10000))
+		if common.PacketChans[i] == nil {
+			return fmt.Errorf("make packet channel failed")
+		}
+	}
+
+	fmt.Println("initialize over")
+	fmt.Printf("Program %s start success in %s at :%s, Max processor:%d Worker number:%d \n", VERSION, common.Dir, time.Now(), max_processor, num)
 	return nil
 }
 
@@ -30,40 +76,16 @@ func main() {
 
 	if err := initialize(); err != nil {
 		fmt.Sprintf("init failed %s \n", err.Error())
-	
 	}
 
-	ln, err := net.Listen("tcp", ":5986")
-	if err != nil {
-		//
-		fmt.Println("Listen error:" + err.Error())
-		os.Exit(1)
+	server := network.NewServer()
+	if server == nil {
+		panic("New tcp server failed")
 	}
+	fmt.Println("Server%s", server)
+	go server.Start()
 
-	for {
-		conn, err := ln.Accept()
-		fmt.Println("has a connection")
-		if err != nil {
-			fmt.Println("Accept " + err.Error())
-			os.Exit(1)
-		}
-		go handleConnection(conn)
-	}
-}
-
-func handleConnection(conn net.Conn) {
-	fmt.Printf("收到数据%s", time.Now())
-	buff := make([]byte, 1000)
-	conn.Read(buff)
-	var r = make(map[string] interface{})
-	err := json.Unmarshal(buff, &r)
-	if err != nil {
-		fmt.Println("Unmarshal err:%s", err.Error())
-		//os.Exit(1)
-	}
-
-	addr := conn.RemoteAddr().String()
-
-	fmt.Println("receive data from :" + addr)
-	fmt.Println("data: ",string(buff))
+	sig_chan := make(chan os.Signal)
+	signal.Notify(sig_chan, os.Interrupt, syscall.SIGTERM)
+	<-sig_chan
 }

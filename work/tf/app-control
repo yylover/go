@@ -1,0 +1,75 @@
+#! /bin/bash
+
+fatal() {
+    echo $?
+    exit 1
+}
+
+run() {
+
+}
+
+
+build() {
+    echo "build $TARGET in $DIR/bin ..."
+
+    if [ ! -d src ]
+    then
+        echo "no src directory, cannot build"
+    fi
+
+    status
+    if [ $? == $STATUS_RUNNING ]
+    then
+        stop
+    fi
+
+    echo "update service/run for supervise"
+}
+
+start() {
+}
+
+stop() {
+}
+
+install() {
+}
+
+uninstall() {
+    echo "uninstalling"
+}
+
+help() {
+    echo "Usage : $0 [start(-s) | stop(-t) | restart(-r) | build(-b) | install(-i) dest_dir | status | run | help"
+    exit 0
+}
+
+case $1 in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    status)
+        status
+        ;;
+    -i|install)
+        install
+        ;;
+    -u|uninstall)
+        uninstall
+        ;;
+    -b|build)
+        build
+        ;;
+    -r|run)
+        ;;
+    *)
+        help
+        ;;
+esac
