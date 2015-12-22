@@ -2,8 +2,8 @@
 #max_processor: 16
 worker_num:2
 #root_dir
-#log_level
-log_level: debug
+#log_level debug info error
+log_level: info
 #alarm_url:
 #alarm_interval:3
 
@@ -22,8 +22,8 @@ slow_read:1
 [backend]
 #one backend per worker, make sure data is in order
 #backend key name must begin with backend_list_
-backend_list_test:
-backend_list_self:
+backend_list_test:127.0.0.1:8888
+backend_list_self:127.0.0.1:8887
 connection_timeout:60
 send_timeout:30
 retry_times:3

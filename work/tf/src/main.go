@@ -85,6 +85,11 @@ func main() {
 	fmt.Println("Server%s", server)
 	go server.Start()
 
+	backend := network.NewBackend(0, common.PacketChans[0])
+	if backend == nil {
+		panic("New backend failed")
+	}
+
 	sig_chan := make(chan os.Signal)
 	signal.Notify(sig_chan, os.Interrupt, syscall.SIGTERM)
 	<-sig_chan
