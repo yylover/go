@@ -206,8 +206,63 @@ func (this *Backend) send(bytes []byte, point *BackPoint) error {
 	if point.conn == nil {
 		err = point.connect()
 		if err != nil {
-
+			this.logger.Error("Backend %d connect to %s failed", this.index, point.name)
+			return err
 		}
-
+		this.logger.Info("Backend %d connect to %s success, IP:%s", this.index, point.name, point.backAddrs[point.currentBackIdx])
 	}
+	length := len(bytes)
+	sendNum := 0
+	start := time.Now()
+
+	//There is no need to detect where the conn is closed by peer, If it is closed, Write() will return "EOF" error
+	for sentNum < length {
+		num, err = point.conn.Write(bytes[sentNum:])
+		if err != nil {
+			this.logger.Error("Backend %d write to %s failed, duration %v, error:%s, IP: %s, yet already sent %d bytes", this.index, point.name, time.Now().Sub(start), err.Error(), point.backAddrs[point.currentBackIdx], sentNum)
+			return err
+		}
+		sentNum += num
+	}
+	this.logger.Debug("Backend %s write to %s success ,duration %v, IP:%s, lenght %d, content", this.index, point.name, time.Now().Sub(start), err.Error(), point.backAddrs[point.currentBackIdx], sentNum)
+	
+
+	point.conn.SetReadDeadline(time.Now().Add(time.Millisecond))
+	num, err = point.conn.Read(point.recvBuf)
+	if err != nil{
+		this.logger.Error("Backend %d read from %s failed, IP %s, error:%s", this.index, point.name, point.backAddrs[point.currentBackIdx, err.Error()])
+		if err == io.EOF {
+			this.logger.Error("Backend %d detect close packet from %s IP: %s", this.index, point.name, point.backAddrs[point.currentBackIdx])
+			return err
+		}
+	}
+}
+
+func (this *BackPoint) connect() error {
+	if this.currentBackIdx < 0 || this.currentBackIdx >= this.backNum {
+		this.currentBackIdx = time.Now().Nanosecond() % this.backNum
+	}
+
+	var addr string
+	var conn net.Conn
+	var err error
+
+	for i := 0; i < this.retryTimes; i++ {
+		this.currentBackIdx = (this.currentBackIdx + 1) % this.backNum
+		addr = this.backAddrs[this.currentBackIdx]
+		conn, err := net.DialTimeout("tcp", addr, this.connTimeout)
+		if err == nil {
+			this.conn = conn
+			return nil
+		}
+		if conn != nil {
+			conn.Close()
+		}
+		time.Sleep(this.retryInterval)
+	}
+
+	this.conn = nil
+
+	//Alarm TODO
+	return err
 }
