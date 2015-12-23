@@ -1,6 +1,6 @@
 [global]
-#max_processor: 16
-worker_num:2
+#max_processor: 16 #由runtime.NumCPU可以读出这个数据
+worker_num:2     #backend个数:
 #root_dir
 #log_level debug info error
 log_level: info

@@ -3,6 +3,7 @@ package network
 import (
 	"common"
 	"fmt"
+	"io"
 	"lib/log4go"
 	"net"
 	"strings"
@@ -212,7 +213,7 @@ func (this *Backend) send(bytes []byte, point *BackPoint) error {
 		this.logger.Info("Backend %d connect to %s success, IP:%s", this.index, point.name, point.backAddrs[point.currentBackIdx])
 	}
 	length := len(bytes)
-	sendNum := 0
+	sentNum := 0
 	start := time.Now()
 
 	//There is no need to detect where the conn is closed by peer, If it is closed, Write() will return "EOF" error
@@ -225,17 +226,18 @@ func (this *Backend) send(bytes []byte, point *BackPoint) error {
 		sentNum += num
 	}
 	this.logger.Debug("Backend %s write to %s success ,duration %v, IP:%s, lenght %d, content", this.index, point.name, time.Now().Sub(start), err.Error(), point.backAddrs[point.currentBackIdx], sentNum)
-	
 
 	point.conn.SetReadDeadline(time.Now().Add(time.Millisecond))
 	num, err = point.conn.Read(point.recvBuf)
-	if err != nil{
-		this.logger.Error("Backend %d read from %s failed, IP %s, error:%s", this.index, point.name, point.backAddrs[point.currentBackIdx, err.Error()])
+	if err != nil {
+		this.logger.Error("Backend %d read from %s failed, IP %s, error:%s", this.index, point.name, point.backAddrs[point.currentBackIdx], err.Error())
 		if err == io.EOF {
 			this.logger.Error("Backend %d detect close packet from %s IP: %s", this.index, point.name, point.backAddrs[point.currentBackIdx])
 			return err
 		}
 	}
+
+	return nil
 }
 
 func (this *BackPoint) connect() error {
@@ -250,7 +252,7 @@ func (this *BackPoint) connect() error {
 	for i := 0; i < this.retryTimes; i++ {
 		this.currentBackIdx = (this.currentBackIdx + 1) % this.backNum
 		addr = this.backAddrs[this.currentBackIdx]
-		conn, err := net.DialTimeout("tcp", addr, this.connTimeout)
+		conn, err = net.DialTimeout("tcp", addr, this.connTimeout)
 		if err == nil {
 			this.conn = conn
 			return nil
